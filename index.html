@@ -18,6 +18,67 @@
 
 const { useState, useEffect } = React;
 
+// ============================================================
+// PORTÓN DE ACCESO — cambia la clave aquí si la quieres cambiar
+// ============================================================
+const CLAVE_CORRECTA = "TUREGULAS2025";
+const LLAVE_GUARDADA = "tmmm_acceso";
+
+function PasswordGate({ children }) {
+  const [tieneAcceso, setTieneAcceso] = useState(() => {
+    try { return localStorage.getItem(LLAVE_GUARDADA) === "si"; } catch { return false; }
+  });
+  const [clave, setClave] = useState("");
+  const [error, setError] = useState(false);
+
+  const verificarClave = () => {
+    if (clave.trim().toUpperCase() === CLAVE_CORRECTA) {
+      try { localStorage.setItem(LLAVE_GUARDADA, "si"); } catch {}
+      setTieneAcceso(true);
+    } else {
+      setError(true);
+      setClave("");
+    }
+  };
+
+  const alPresionarTecla = (e) => { if (e.key === "Enter") verificarClave(); };
+
+  if (tieneAcceso) return children;
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f5f0eb", padding: "1rem", fontFamily: "Georgia, serif" }}>
+      <div style={{ background: "white", borderRadius: "20px", padding: "2.5rem 2rem", maxWidth: "420px", width: "100%", textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+        <div style={{ fontSize: "2.8rem", marginBottom: "0.5rem" }}>🌍</div>
+        <h1 style={{ fontSize: "1.3rem", fontWeight: "600", color: "#1a1a1a", margin: "0 0 0.4rem" }}>Tu Mundo Mi Mundo</h1>
+        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "2rem", lineHeight: "1.6" }}>
+          Ingresa la clave que recibiste al comprar el bundle<br />
+          <strong>Superpoderes + App</strong> para acceder.
+        </p>
+        <input
+          type="password"
+          placeholder="Tu clave de acceso"
+          value={clave}
+          onChange={(e) => { setClave(e.target.value); setError(false); }}
+          onKeyDown={alPresionarTecla}
+          style={{ width: "100%", padding: "0.8rem 1rem", border: error ? "1.5px solid #e24b4a" : "1.5px solid #ddd", borderRadius: "10px", fontSize: "1rem", outline: "none", boxSizing: "border-box", color: "#1a1a1a", backgroundColor: "#fafafa" }}
+        />
+        {error && <p style={{ color: "#e24b4a", fontSize: "0.82rem", marginTop: "0.5rem", textAlign: "left" }}>Clave incorrecta. Revisa el correo que recibiste al comprar.</p>}
+        <button
+          onClick={verificarClave}
+          style={{ width: "100%", padding: "0.85rem", backgroundColor: "#2d6a4f", color: "white", border: "none", borderRadius: "10px", fontSize: "1rem", fontWeight: "600", cursor: "pointer", marginTop: "1rem" }}
+        >
+          Acceder →
+        </button>
+        <p style={{ fontSize: "0.78rem", color: "#aaa", marginTop: "1.5rem" }}>
+          ¿Aún no tienes acceso?{" "}
+          <a href="https://www.tumundomimundo.com" target="_blank" style={{ color: "#2d6a4f", textDecoration: "none", fontWeight: "500" }}>Adquiérelo aquí</a>
+        </p>
+      </div>
+    </div>
+  );
+}
+// ============================================================
+
 const situationCategories = [
   { id: "cansancio", label: "Cansancio / agotamiento", emoji: "😴" },
   { id: "hambre", label: "Hambre", emoji: "🍽️" },
@@ -236,7 +297,7 @@ function App() {
   const handleAssistantFromWelcome = () => { try { localStorage.setItem("superpoderes_seen", "1"); } catch {} setShowWelcome(false); setShowAssistant(true); };
   const saveData = (c, r) => { try { localStorage.setItem("superpoderes_v2", JSON.stringify({ completed: c, reflections: r })); } catch {} };
   const markComplete = () => { const n = { ...completed, [currentChapter]: true }; setCompleted(n); saveData(n, reflections); };
-  const updateReflection = (cId, field, value) => { const n = { ...reflections, [cId]: { ...(reflections[cId] || {})[field] ? reflections[cId] : { ...(reflections[cId] || {}), [field]: value } } }; setReflections({ ...reflections, [cId]: { ...(reflections[cId] || {}), [field]: value } }); saveData(completed, { ...reflections, [cId]: { ...(reflections[cId] || {}), [field]: value } }); };
+  const updateReflection = (cId, field, value) => { const n = { ...reflections, [cId]: { ...(reflections[cId] || {}), [field]: value } }; setReflections(n); saveData(completed, n); };
   const goNext = () => { if (currentChapter < chapters.length - 1) { setCurrentChapter(c => c + 1); setActiveTab("concepto"); setExpandedStrategy(null); } };
   const goPrev = () => { if (currentChapter > 0) { setCurrentChapter(c => c - 1); setActiveTab("concepto"); setExpandedStrategy(null); } };
 
@@ -246,82 +307,84 @@ function App() {
   const tabs = ["concepto", ...(chapter.strategies.length > 0 ? ["estrategias"] : []), ...(chapter.pause ? ["pausa"] : [])];
   const tabLabels = { concepto: "Concepto", estrategias: "Estrategias", pausa: "Pausa Consciente" };
 
-  if (showWelcome) return <WelcomeScreen onStart={handleStart} onAssistant={handleAssistantFromWelcome} />;
+  if (showWelcome) return <PasswordGate><WelcomeScreen onStart={handleStart} onAssistant={handleAssistantFromWelcome} /></PasswordGate>;
 
   return (
-    <div style={{ fontFamily: "Georgia, serif", minHeight: "100vh", background: "#FAF8F4", color: "#2C2416" }}>
-      {showAssistant && <AssistantScreen onClose={() => setShowAssistant(false)} />}
-      <div style={{ background: chapter.color, transition: "background 0.5s ease" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto", padding: "20px 24px 0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <button onClick={() => setShowMenu(!showMenu)} style={{ background: "rgba(255,255,255,0.25)", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: "white", fontSize: 13, fontFamily: "inherit" }}>Indice</button>
-            <button onClick={() => setShowAssistant(true)} style={{ background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 20, padding: "8px 16px", cursor: "pointer", color: chapter.color, fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}>Que hago ahora?</button>
-          </div>
-          <div style={{ height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, marginBottom: 24 }}>
-            <div style={{ height: "100%", width: ((completedCount / totalSuperpowers) * 100) + "%", background: "rgba(255,255,255,0.7)", borderRadius: 2, transition: "width 0.4s ease" }} />
-          </div>
-          <div style={{ paddingBottom: 32 }}>
-            {chapter.number && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>Superpoder {chapter.number} de {totalSuperpowers}</div>}
-            <div style={{ fontSize: 38, marginBottom: 8 }}>{chapter.emoji}</div>
-            <h1 style={{ margin: 0, fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 700, color: "white", lineHeight: 1.3 }}>{chapter.title}</h1>
-            {completed[currentChapter] && <div style={{ marginTop: 10, display: "inline-block", background: "rgba(255,255,255,0.2)", color: "white", borderRadius: 20, padding: "4px 12px", fontSize: 12 }}>Completado</div>}
-          </div>
-        </div>
-        {tabs.length > 1 && <div style={{ maxWidth: 680, margin: "0 auto", padding: "0 24px", display: "flex" }}>
-          {tabs.map(tab => <button key={tab} onClick={() => setActiveTab(tab)} style={{ background: activeTab === tab ? "#FAF8F4" : "transparent", border: "none", padding: "12px 14px", cursor: "pointer", color: activeTab === tab ? chapter.color : "rgba(255,255,255,0.8)", fontSize: 13, fontFamily: "inherit", fontWeight: activeTab === tab ? 700 : 400, borderRadius: "8px 8px 0 0" }}>{tabLabels[tab]}</button>)}
-        </div>}
-      </div>
-
-      {showMenu && <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 100 }} onClick={() => setShowMenu(false)}>
-        <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 300, background: "#FAF8F4", padding: 24, overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-          <h2 style={{ margin: "0 0 20px", fontSize: 18 }}>Tabla de contenido</h2>
-          {chapters.map((ch, i) => <button key={ch.id} onClick={() => { setCurrentChapter(i); setActiveTab("concepto"); setShowMenu(false); setExpandedStrategy(null); }} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", background: currentChapter === i ? ch.color + "20" : "transparent", border: "none", borderRadius: 10, padding: "12px 14px", cursor: "pointer", marginBottom: 4, fontFamily: "inherit" }}>
-            <span style={{ fontSize: 22, flexShrink: 0 }}>{ch.emoji}</span>
-            <div>{ch.number && <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Superpoder {ch.number}</div>}<div style={{ fontSize: 14, color: "#2C2416", fontWeight: currentChapter === i ? 700 : 400, lineHeight: 1.3 }}>{ch.title}</div></div>
-            {completed[i] && <span style={{ marginLeft: "auto", color: ch.color }}>ok</span>}
-          </button>)}
-        </div>
-      </div>}
-
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "28px 24px 120px" }}>
-        {activeTab === "concepto" && <div>
-          <div style={{ fontSize: "clamp(15px, 3.5vw, 17px)", lineHeight: 1.85, color: "#3A3020", whiteSpace: "pre-line", marginBottom: 28 }}>{chapter.concept}</div>
-          <div style={{ background: chapter.color + "15", borderLeft: "4px solid " + chapter.color, borderRadius: "0 12px 12px 0", padding: "18px 20px", marginBottom: 28 }}>
-            <p style={{ margin: 0, fontStyle: "italic", fontSize: "clamp(16px, 4vw, 19px)", color: chapter.color, lineHeight: 1.5, fontWeight: 600 }}>"{chapter.quote}"</p>
-          </div>
-          {chapter.strategies.length > 0 && <button onClick={() => setActiveTab("estrategias")} style={{ background: chapter.color, color: "white", border: "none", borderRadius: 12, padding: "14px 28px", fontSize: 15, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>Ver las {chapter.strategies.length} estrategias</button>}
-        </div>}
-
-        {activeTab === "estrategias" && <div>
-          <p style={{ color: "#7A6A55", fontSize: 14, marginBottom: 20 }}>Toca cada estrategia para ver el detalle.</p>
-          {chapter.strategies.map((s, i) => <div key={i} onClick={() => setExpandedStrategy(expandedStrategy === i ? null : i)} style={{ background: expandedStrategy === i ? chapter.color + "12" : "white", border: "1.5px solid " + (expandedStrategy === i ? chapter.color : "#E8E0D5"), borderRadius: 14, padding: "18px 20px", marginBottom: 12, cursor: "pointer" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#2C2416", lineHeight: 1.3 }}><span style={{ color: chapter.color, marginRight: 8 }}>{i + 1}.</span>{s.title}</div>
-              <span style={{ color: chapter.color, fontSize: 20, flexShrink: 0, marginLeft: 8 }}>{expandedStrategy === i ? "-" : "+"}</span>
+    <PasswordGate>
+      <div style={{ fontFamily: "Georgia, serif", minHeight: "100vh", background: "#FAF8F4", color: "#2C2416" }}>
+        {showAssistant && <AssistantScreen onClose={() => setShowAssistant(false)} />}
+        <div style={{ background: chapter.color, transition: "background 0.5s ease" }}>
+          <div style={{ maxWidth: 680, margin: "0 auto", padding: "20px 24px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <button onClick={() => setShowMenu(!showMenu)} style={{ background: "rgba(255,255,255,0.25)", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: "white", fontSize: 13, fontFamily: "inherit" }}>Indice</button>
+              <button onClick={() => setShowAssistant(true)} style={{ background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 20, padding: "8px 16px", cursor: "pointer", color: chapter.color, fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}>Que hago ahora?</button>
             </div>
-            {expandedStrategy === i && <p style={{ margin: "14px 0 0", fontSize: 14, lineHeight: 1.8, color: "#5A4A35" }}>{s.desc}</p>}
-          </div>)}
-          {chapter.pause && <button onClick={() => setActiveTab("pausa")} style={{ background: chapter.color, color: "white", border: "none", borderRadius: 12, padding: "14px 28px", fontSize: 15, cursor: "pointer", fontFamily: "inherit", width: "100%", marginTop: 8 }}>Ir a la Pausa Consciente</button>}
+            <div style={{ height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, marginBottom: 24 }}>
+              <div style={{ height: "100%", width: ((completedCount / totalSuperpowers) * 100) + "%", background: "rgba(255,255,255,0.7)", borderRadius: 2, transition: "width 0.4s ease" }} />
+            </div>
+            <div style={{ paddingBottom: 32 }}>
+              {chapter.number && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>Superpoder {chapter.number} de {totalSuperpowers}</div>}
+              <div style={{ fontSize: 38, marginBottom: 8 }}>{chapter.emoji}</div>
+              <h1 style={{ margin: 0, fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 700, color: "white", lineHeight: 1.3 }}>{chapter.title}</h1>
+              {completed[currentChapter] && <div style={{ marginTop: 10, display: "inline-block", background: "rgba(255,255,255,0.2)", color: "white", borderRadius: 20, padding: "4px 12px", fontSize: 12 }}>Completado</div>}
+            </div>
+          </div>
+          {tabs.length > 1 && <div style={{ maxWidth: 680, margin: "0 auto", padding: "0 24px", display: "flex" }}>
+            {tabs.map(tab => <button key={tab} onClick={() => setActiveTab(tab)} style={{ background: activeTab === tab ? "#FAF8F4" : "transparent", border: "none", padding: "12px 14px", cursor: "pointer", color: activeTab === tab ? chapter.color : "rgba(255,255,255,0.8)", fontSize: 13, fontFamily: "inherit", fontWeight: activeTab === tab ? 700 : 400, borderRadius: "8px 8px 0 0" }}>{tabLabels[tab]}</button>)}
+          </div>}
+        </div>
+
+        {showMenu && <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 100 }} onClick={() => setShowMenu(false)}>
+          <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 300, background: "#FAF8F4", padding: 24, overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ margin: "0 0 20px", fontSize: 18 }}>Tabla de contenido</h2>
+            {chapters.map((ch, i) => <button key={ch.id} onClick={() => { setCurrentChapter(i); setActiveTab("concepto"); setShowMenu(false); setExpandedStrategy(null); }} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", background: currentChapter === i ? ch.color + "20" : "transparent", border: "none", borderRadius: 10, padding: "12px 14px", cursor: "pointer", marginBottom: 4, fontFamily: "inherit" }}>
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{ch.emoji}</span>
+              <div>{ch.number && <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Superpoder {ch.number}</div>}<div style={{ fontSize: 14, color: "#2C2416", fontWeight: currentChapter === i ? 700 : 400, lineHeight: 1.3 }}>{ch.title}</div></div>
+              {completed[i] && <span style={{ marginLeft: "auto", color: ch.color }}>ok</span>}
+            </button>)}
+          </div>
         </div>}
 
-        {activeTab === "pausa" && chapter.pause && <div>
-          <p style={{ fontSize: 14, color: "#7A6A55", marginBottom: 24, lineHeight: 1.7 }}>Un espacio para mirarte con amabilidad. Escribe lo que emerge en ti.</p>
-          {[{ key: "observa", label: "Observa", prompt: chapter.pause.observa }, { key: "reconoce", label: "Reconoce", prompt: chapter.pause.reconoce }, { key: "elige", label: "Elige", prompt: chapter.pause.elige }, { key: "recuerda", label: "Recuerda", prompt: chapter.pause.recuerda }].map(({ key, label, prompt }) => <div key={key} style={{ marginBottom: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: chapter.color, marginBottom: 6 }}>{label}</div>
-            <p style={{ margin: "0 0 8px", fontSize: 13, color: "#7A6A55", lineHeight: 1.7, fontStyle: "italic" }}>{prompt}</p>
-            <textarea value={(reflections[currentChapter] || {})[key] || ""} onChange={e => updateReflection(currentChapter, key, e.target.value)} placeholder="Escribe aqui tu reflexion..." style={{ width: "100%", boxSizing: "border-box", minHeight: 90, border: "1.5px solid " + chapter.color + "40", borderRadius: 10, padding: "12px 14px", fontSize: 14, fontFamily: "inherit", lineHeight: 1.7, color: "#2C2416", background: "white", resize: "vertical", outline: "none" }} />
-          </div>)}
-          {!completed[currentChapter] ? <button onClick={markComplete} style={{ background: chapter.color, color: "white", border: "none", borderRadius: 12, padding: "14px 28px", fontSize: 15, cursor: "pointer", fontFamily: "inherit", width: "100%", fontWeight: 700 }}>Marcar como completado</button>
-          : <div style={{ textAlign: "center", padding: 16, background: chapter.color + "15", borderRadius: 12, color: chapter.color, fontWeight: 700, fontSize: 15 }}>Superpoder completado</div>}
-        </div>}
-      </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "28px 24px 120px" }}>
+          {activeTab === "concepto" && <div>
+            <div style={{ fontSize: "clamp(15px, 3.5vw, 17px)", lineHeight: 1.85, color: "#3A3020", whiteSpace: "pre-line", marginBottom: 28 }}>{chapter.concept}</div>
+            <div style={{ background: chapter.color + "15", borderLeft: "4px solid " + chapter.color, borderRadius: "0 12px 12px 0", padding: "18px 20px", marginBottom: 28 }}>
+              <p style={{ margin: 0, fontStyle: "italic", fontSize: "clamp(16px, 4vw, 19px)", color: chapter.color, lineHeight: 1.5, fontWeight: 600 }}>"{chapter.quote}"</p>
+            </div>
+            {chapter.strategies.length > 0 && <button onClick={() => setActiveTab("estrategias")} style={{ background: chapter.color, color: "white", border: "none", borderRadius: 12, padding: "14px 28px", fontSize: 15, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>Ver las {chapter.strategies.length} estrategias</button>}
+          </div>}
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #E8E0D5", padding: "12px 24px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 50 }}>
-        <button onClick={goPrev} disabled={currentChapter === 0} style={{ background: currentChapter === 0 ? "#F0EDE8" : chapter.color + "20", border: "none", borderRadius: 10, padding: "12px 20px", cursor: currentChapter === 0 ? "default" : "pointer", color: currentChapter === 0 ? "#C0B8A8" : chapter.color, fontSize: 14, fontFamily: "inherit", fontWeight: 600 }}>Anterior</button>
-        <div style={{ fontSize: 12, color: "#A09080" }}>{currentChapter + 1} / {chapters.length}</div>
-        <button onClick={goNext} disabled={currentChapter === chapters.length - 1} style={{ background: currentChapter === chapters.length - 1 ? "#F0EDE8" : chapter.color, border: "none", borderRadius: 10, padding: "12px 20px", cursor: currentChapter === chapters.length - 1 ? "default" : "pointer", color: currentChapter === chapters.length - 1 ? "#C0B8A8" : "white", fontSize: 14, fontFamily: "inherit", fontWeight: 600, marginRight: 8 }}>Siguiente</button>
+          {activeTab === "estrategias" && <div>
+            <p style={{ color: "#7A6A55", fontSize: 14, marginBottom: 20 }}>Toca cada estrategia para ver el detalle.</p>
+            {chapter.strategies.map((s, i) => <div key={i} onClick={() => setExpandedStrategy(expandedStrategy === i ? null : i)} style={{ background: expandedStrategy === i ? chapter.color + "12" : "white", border: "1.5px solid " + (expandedStrategy === i ? chapter.color : "#E8E0D5"), borderRadius: 14, padding: "18px 20px", marginBottom: 12, cursor: "pointer" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "#2C2416", lineHeight: 1.3 }}><span style={{ color: chapter.color, marginRight: 8 }}>{i + 1}.</span>{s.title}</div>
+                <span style={{ color: chapter.color, fontSize: 20, flexShrink: 0, marginLeft: 8 }}>{expandedStrategy === i ? "-" : "+"}</span>
+              </div>
+              {expandedStrategy === i && <p style={{ margin: "14px 0 0", fontSize: 14, lineHeight: 1.8, color: "#5A4A35" }}>{s.desc}</p>}
+            </div>)}
+            {chapter.pause && <button onClick={() => setActiveTab("pausa")} style={{ background: chapter.color, color: "white", border: "none", borderRadius: 12, padding: "14px 28px", fontSize: 15, cursor: "pointer", fontFamily: "inherit", width: "100%", marginTop: 8 }}>Ir a la Pausa Consciente</button>}
+          </div>}
+
+          {activeTab === "pausa" && chapter.pause && <div>
+            <p style={{ fontSize: 14, color: "#7A6A55", marginBottom: 24, lineHeight: 1.7 }}>Un espacio para mirarte con amabilidad. Escribe lo que emerge en ti.</p>
+            {[{ key: "observa", label: "Observa", prompt: chapter.pause.observa }, { key: "reconoce", label: "Reconoce", prompt: chapter.pause.reconoce }, { key: "elige", label: "Elige", prompt: chapter.pause.elige }, { key: "recuerda", label: "Recuerda", prompt: chapter.pause.recuerda }].map(({ key, label, prompt }) => <div key={key} style={{ marginBottom: 24 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: chapter.color, marginBottom: 6 }}>{label}</div>
+              <p style={{ margin: "0 0 8px", fontSize: 13, color: "#7A6A55", lineHeight: 1.7, fontStyle: "italic" }}>{prompt}</p>
+              <textarea value={(reflections[currentChapter] || {})[key] || ""} onChange={e => updateReflection(currentChapter, key, e.target.value)} placeholder="Escribe aqui tu reflexion..." style={{ width: "100%", boxSizing: "border-box", minHeight: 90, border: "1.5px solid " + chapter.color + "40", borderRadius: 10, padding: "12px 14px", fontSize: 14, fontFamily: "inherit", lineHeight: 1.7, color: "#2C2416", background: "white", resize: "vertical", outline: "none" }} />
+            </div>)}
+            {!completed[currentChapter] ? <button onClick={markComplete} style={{ background: chapter.color, color: "white", border: "none", borderRadius: 12, padding: "14px 28px", fontSize: 15, cursor: "pointer", fontFamily: "inherit", width: "100%", fontWeight: 700 }}>Marcar como completado</button>
+            : <div style={{ textAlign: "center", padding: 16, background: chapter.color + "15", borderRadius: 12, color: chapter.color, fontWeight: 700, fontSize: 15 }}>Superpoder completado</div>}
+          </div>}
+        </div>
+
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #E8E0D5", padding: "12px 24px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 50 }}>
+          <button onClick={goPrev} disabled={currentChapter === 0} style={{ background: currentChapter === 0 ? "#F0EDE8" : chapter.color + "20", border: "none", borderRadius: 10, padding: "12px 20px", cursor: currentChapter === 0 ? "default" : "pointer", color: currentChapter === 0 ? "#C0B8A8" : chapter.color, fontSize: 14, fontFamily: "inherit", fontWeight: 600 }}>Anterior</button>
+          <div style={{ fontSize: 12, color: "#A09080" }}>{currentChapter + 1} / {chapters.length}</div>
+          <button onClick={goNext} disabled={currentChapter === chapters.length - 1} style={{ background: currentChapter === chapters.length - 1 ? "#F0EDE8" : chapter.color, border: "none", borderRadius: 10, padding: "12px 20px", cursor: currentChapter === chapters.length - 1 ? "default" : "pointer", color: currentChapter === chapters.length - 1 ? "#C0B8A8" : "white", fontSize: 14, fontFamily: "inherit", fontWeight: 600 }}>Siguiente</button>
+        </div>
       </div>
-    </div>
+    </PasswordGate>
   );
 }
 
